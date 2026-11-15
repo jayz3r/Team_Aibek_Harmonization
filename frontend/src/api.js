@@ -91,10 +91,32 @@ export class FireAPI {
   loadDemo() { return this.post('/demo/load', undefined); }
   importFirms(body) { return this.post('/ingest/firms', body); }
 
-  upload(file) {
+  /**
+   * Multipart upload (field "file"). With onProgress(sentBytes, totalBytes) the request goes through
+   * XMLHttpRequest, the only browser API that reports upload progress.
+   */
+  upload(file, {onProgress} = {}) {
     const form = new FormData();
     form.append('file', file);
-    return this.json('/api/v1/datasets/upload', {method: 'POST', form});
+    if (!onProgress || typeof XMLHttpRequest === 'undefined') return this.json('/api/v1/datasets/upload', {method: 'POST', form});
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', this.base + '/api/v1/datasets/upload');
+      if (this.key) xhr.setRequestHeader('X-API-Key', this.key);
+      xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded, e.total); };
+      xhr.onerror = xhr.onabort = () => reject(new ApiError(0, 'the upload was interrupted — check the connection and that the server is awake, then try again'));
+      xhr.onload = () => {
+        let data = null;
+        try { data = JSON.parse(xhr.responseText); } catch { /* a proxy answered with HTML */ }
+        if (xhr.status >= 200 && xhr.status < 300 && data?.job_id) return resolve(data);
+        let detail = data ? errorText(data.detail) : '';
+        if (!detail && xhr.status === 401) detail = 'Invalid or missing API key.';
+        if (!detail && xhr.status === 413) detail = 'the file is larger than this server accepts';
+        if (!detail && xhr.status >= 502 && xhr.status <= 504) detail = 'the server restarted or ran out of memory while receiving the file — try a smaller file';
+        reject(new ApiError(xhr.status, detail || `Upload failed (HTTP ${xhr.status}).`));
+      };
+      xhr.send(form);
+    });
   }
 
   /** Poll a background job until it ends. Resolves with job.result, rejects with job.error. */

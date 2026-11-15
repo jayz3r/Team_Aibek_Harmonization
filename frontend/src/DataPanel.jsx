@@ -64,7 +64,7 @@ export default function DataPanel({ctx}) {
         {caps.demo_sample && <button className="ghost" disabled={!!busy} onClick={ctx.loadDemo}><Database size={15}/> Load real sample + calibrate</button>}
       </div>
       {busy && <p className="status loading"><RefreshCw size={14}/> {jobText || 'Working…'}</p>}
-      <p className="muted">Files are parsed on the server (up to 256 MB each, 30 M rows). Re-uploading the same file is harmless. After new data, re-calibrate the model in the Harmonize panel.</p>
+      <p className="muted">Upload the ZIP exactly as NASA FIRMS Archive Download sends it (CSV format: <code>fire_archive_*.csv</code>, <code>fire_nrt_*.csv</code>) — several files can be picked at once. Up to {Math.round((overview.limits?.max_upload_bytes || 256 * 1048576) / 1048576)} MB per file. Re-uploading the same file is harmless. After new data, re-calibrate the model in the Harmonize panel.</p>
 
       <h3>Live FIRMS import</h3>
       {caps.firms_live ? <>

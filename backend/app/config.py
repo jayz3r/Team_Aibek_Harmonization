@@ -41,6 +41,35 @@ def read_dotenv(path):
     return values
 
 
+def container_memory_bytes():
+    """RAM limit of the container (cgroup v2, then v1); None on a normal machine or when unknown."""
+    for name in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        try:
+            raw = Path(name).read_text().strip()
+            value = int(raw)
+        except (OSError, ValueError):
+            continue
+        if 0 < value < 64 * 1024 ** 3:  # "max" / 2**63 mean "no limit"
+            return value
+    return None
+
+
+def sized_for(memory_bytes):
+    """(DuckDB memory_limit, CSV chunk rows) that fit a host. Small hosts (Render free = 512 MB) get small numbers."""
+    if not memory_bytes or memory_bytes >= 6 * 1024 ** 3:
+        return "3GB", 100_000
+    megabytes = memory_bytes // (1024 * 1024)
+    return f"{max(96, int(megabytes * 0.4))}MB", (25_000 if megabytes <= 1536 else 50_000)
+
+
+def _positive_int(raw, default, low, high):
+    try:
+        value = int(float(raw))
+    except (TypeError, ValueError):
+        return default
+    return value if low <= value <= high else default
+
+
 @dataclass
 class Settings:
     data_dir: Path = field(default_factory=lambda: Path(os.getenv("DATA_DIR", "data")))
@@ -58,6 +87,8 @@ class Settings:
     grid_km: float = 10.0
     region_km: float = 100.0
     memory_limit: str = "3GB"
+    # Import the bundled sample into an EMPTY database at start-up (hosts that wipe the disk on restart).
+    autoload_demo: bool = False
 
     @classmethod
     def from_env(cls, dotenv=None):
@@ -76,7 +107,18 @@ class Settings:
             # Present but blank means "explicitly disabled", not "use the default".
             return "" if (name in os.environ or name in file) else default
 
+        try:
+            memory_limit, chunk_rows = sized_for(container_memory_bytes())
+        except Exception:  # never let host probing stop the server
+            memory_limit, chunk_rows = "3GB", 100_000
+        custom_memory = pick("DUCKDB_MEMORY_LIMIT").replace(" ", "")
+        if custom_memory and custom_memory[:1].isdigit() and custom_memory.upper().endswith(("MB", "GB", "MIB", "GIB")):
+            memory_limit = custom_memory
         return cls(
+            memory_limit=memory_limit,
+            chunk_rows=_positive_int(pick("CHUNK_ROWS"), chunk_rows, 1_000, 1_000_000),
+            max_upload_bytes=_positive_int(pick("MAX_UPLOAD_MB"), 256, 1, 4096) * 1024 * 1024,
+            autoload_demo=pick("AUTOLOAD_DEMO").strip().lower() in ("1", "true", "yes", "on"),
             data_dir=Path(pick("DATA_DIR", "data")),
             api_key=pick("API_KEY"),
             firms_map_key=pick("FIRMS_MAP_KEY"),
@@ -87,6 +129,10 @@ class Settings:
 
 class InputError(ValueError):
     pass
+
+
+class UploadTooLarge(InputError):
+    """Reported as HTTP 413."""
 
 
 class ConflictError(ValueError):

@@ -171,3 +171,46 @@ def test_built_frontend_is_served_next_to_the_api(tmp_path):
         assert c.get("/health").json()["status"] == "ok"
         assert c.get("/api/v1/overview").status_code == 200
         assert c.get("/docs").status_code == 200
+
+
+def test_zip_upload_through_http_and_readable_refusals(client):
+    import zipfile
+    good = io.BytesIO()
+    with zipfile.ZipFile(good, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("fire_archive_SV-C2_1.csv", pd.DataFrame([observation(), observation(date="2023-01-02")]).to_csv(index=False))
+        z.writestr("Readme.txt", "text")
+    r = client.post("/api/v1/datasets/upload", files={"file": ("DL_FIRE_SV-C2_1.zip", good.getvalue(), "application/x-zip-compressed")})
+    assert r.status_code == 202
+    job = wait_job(client, r.json()["job_id"])
+    assert job["status"] == "succeeded" and job["result"]["members"][0]["valid_rows"] == 2
+    overview = client.get("/api/v1/overview").json()
+    assert overview["detections"]["archive"] == 2 and overview["limits"]["max_upload_bytes"] == 256 * 1024 * 1024
+
+    shape = io.BytesIO()
+    with zipfile.ZipFile(shape, "w") as z:
+        z.writestr("fire_1.shp", b"x")
+    r = client.post("/api/v1/datasets/upload", files={"file": ("shape.zip", shape.getvalue(), "application/zip")})
+    job = wait_job(client, r.json()["job_id"])
+    assert job["status"] == "failed" and "shapefile" in job["error"]
+    r = client.post("/api/v1/datasets/upload", files={"file": ("page.zip", b"<html>login</html>", "application/zip")})
+    assert "not a readable ZIP" in wait_job(client, r.json()["job_id"])["error"]
+    assert client.post("/api/v1/datasets/upload", files={"file": ("a.txt", b"x", "text/plain")}).status_code == 422
+    assert client.post("/api/v1/datasets/upload", files={"file": ("a.zip", b"", "application/zip")}).status_code == 422
+    assert client.get("/api/v1/overview").json()["detections"]["archive"] == 2
+
+
+def test_upload_over_the_limit_is_413(tmp_path):
+    app = create_app(Settings(data_dir=tmp_path / "db", frontend_dist=None, max_upload_bytes=1000))
+    with TestClient(app) as c:
+        r = c.post("/api/v1/datasets/upload", files={"file": ("big.csv", b"x" * 2000, "text/csv")})
+        assert r.status_code == 413 and "exceeds" in r.json()["detail"]
+        assert not list((tmp_path / "db" / "uploads").glob("*"))
+
+
+def test_autoload_demo_fills_an_empty_database(tmp_path):
+    app = create_app(Settings(data_dir=tmp_path / "db", frontend_dist=None, autoload_demo=True))
+    with TestClient(app) as c:
+        pass  # leaving the context waits for the queued job
+    with TestClient(create_app(Settings(data_dir=tmp_path / "db", frontend_dist=None))) as c:
+        overview = c.get("/api/v1/overview").json()
+        assert overview["datasets"]["ready"] == 1 and overview["latest_model"] is not None

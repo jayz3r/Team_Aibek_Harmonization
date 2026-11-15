@@ -11,7 +11,7 @@ import {FireAPI, saveBlob, windowQuery} from './api.js';
 import {addCityLayers, cities, connectBuildings} from './cities.js';
 import {demo, parseCSV, regions, WORLD} from './data.js';
 import {AGREEMENT_COLOR, EMPTY, GRID_STOPS, addFireLayers, linksGeoJSON, rowsGeoJSON, setFireVisibility} from './fireLayers.js';
-import {MONTHS, MONTHS_LONG, PLATFORMS, PLATFORM_COLOR, PLATFORM_LABEL, bboxOf, compact, defaultYear, featureToRow, flagLabel, fmt, monthRange, monthValue, platformsFor, yearsOf} from './format.js';
+import {MONTHS, MONTHS_LONG, PLATFORMS, PLATFORM_COLOR, PLATFORM_LABEL, bboxOf, compact, defaultYear, featureToRow, flagLabel, fmt, monthRange, monthValue, platformsFor, yearsOf, uploadProblem, uploadingText, uploadSummary} from './format.js';
 import {addLandscape, rectangle, regionShape} from './landscape.js';
 
 const api = new FireAPI();
@@ -468,16 +468,36 @@ export default function App() {
     } finally { setBusy(null); setJobText(''); }
   }
   const importing = j => (j.status === 'queued' ? 'Queued…' : j.result?.input_rows ? `Importing… ${fmt(j.result.input_rows)} rows read` : 'Importing…');
+  // One or several FIRMS files (the four products come as four ZIPs): checked in the browser, sent one by one.
   async function uploadToServer(e) {
-    const file = e.target.files?.[0];
+    const files = [...(e.target.files || [])];
     e.target.value = '';
-    if (!file) return;
-    const done = await job('upload', () => api.upload(file), importing);
-    if (!done) return;
-    const valid = (done.result.members || []).reduce((s, m) => s + (m.valid_rows || 0), 0);
-    setNotice(done.result.already_imported ? `${file.name} was already imported.` : `${file.name}: ${fmt(valid)} detections imported. Re-calibrate the model in Harmonize → Validation.`);
-    const target = boundsRegion(done.next);
-    if (target) { setEntered(true); fly(target); }
+    if (!files.length) return;
+    const limit = overview?.limits?.max_upload_bytes || 256 * 1048576;
+    const results = [];
+    let imported = false;
+    setBusy('upload');
+    try {
+      for (const [i, file] of files.entries()) {
+        const label = files.length > 1 ? `File ${i + 1} of ${files.length} · ${file.name} · ` : '';
+        const problem = uploadProblem(file, limit);
+        if (problem) { results.push({name: file.name, error: problem}); continue; }
+        try {
+          setJobText(label + 'Uploading…');
+          const {job_id: id} = await api.upload(file, {onProgress: (sent, total) => setJobText(label + uploadingText(sent, total))});
+          const result = await api.waitForJob(id, {onProgress: j => setJobText(label + importing(j))});
+          const valid = (result.members || []).reduce((s, m) => s + (m.valid_rows || 0), 0);
+          results.push({name: file.name, valid, already: !!result.already_imported});
+          imported = imported || (!result.already_imported && valid > 0);
+        } catch (error) {
+          results.push({name: file.name, error: error.message});
+        }
+      }
+      const next = results.some(r => !r.error) ? await connect() : null;
+      setNotice(uploadSummary(results));
+      const target = imported ? boundsRegion(next) : null;
+      if (target) { setEntered(true); fly(target); }
+    } finally { setBusy(null); setJobText(''); }
   }
   async function loadDemo() {
     const done = await job('demo', () => api.loadDemo(), j => (j.result?.input_rows ? `Importing… ${fmt(j.result.input_rows)} rows read` : 'Importing the sample and fitting the model…'));
@@ -683,7 +703,7 @@ export default function App() {
     </section></div>}
 
     <input ref={localFile} type="file" accept=".csv,text/csv" hidden onChange={importLocal}/>
-    <input ref={serverFile} type="file" accept=".csv,.zip,text/csv,application/zip" hidden onChange={uploadToServer}/>
+    <input ref={serverFile} type="file" accept=".csv,.zip,text/csv,application/zip,application/x-zip-compressed" multiple hidden onChange={uploadToServer}/>
     {notice && <div className="toast" role="status">{notice}<button aria-label="Dismiss notice" onClick={() => setNotice('')}><X size={16}/></button></div>}
     {error && <button role="alert" className="map-error" onClick={() => setError('')}>{error} ×</button>}
   </div>;

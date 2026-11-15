@@ -708,7 +708,7 @@
             "type": "string",
             "contentMediaType": "application/octet-stream",
             "title": "File",
-            "description": "FIRMS CSV or ZIP; max 256 MiB"
+            "description": "FIRMS CSV or ZIP (MAX_UPLOAD_MB, default 256 MiB)"
           }
         },
         "type": "object",

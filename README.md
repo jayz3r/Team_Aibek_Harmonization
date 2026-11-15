@@ -53,6 +53,29 @@ cd ../backend && uvicorn app.main:app --port 8000 --workers 1
 
 Теперь всё приложение открывается на <http://localhost:8000>, документация API — на `/docs`.
 
+### Загрузка своих данных с NASA FIRMS
+
+1. На странице [FIRMS Archive Download](https://firms.modaps.eosdis.nasa.gov/download/) создайте запрос: страна или область, период, продукт (MODIS, VIIRS S-NPP, NOAA-20, NOAA-21), формат **CSV**.
+2. Скачайте ZIP по ссылке из письма. Распаковывать не нужно.
+3. В приложении нажмите плашку статуса в шапке → **Upload FIRMS CSV / ZIP** и выберите один или несколько архивов.
+4. После загрузки откройте **Harmonize → Validation → Re-calibrate**.
+
+Для модели нужны и MODIS, и VIIRS за несколько общих лет. Лимит одного файла — 256 МБ (`MAX_UPLOAD_MB`).
+
+### Размещение на Render
+
+| Поле | Значение |
+|---|---|
+| Root Directory | `backend` |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1` |
+| Переменная `PYTHON_VERSION` | `3.12.8` |
+| Переменная `AUTOLOAD_DEMO` (по желанию) | `1` — пустая база при старте сама загружает встроенный пример и обучает модель |
+
+Интерфейс сервер отдаёт из `frontend/dist`, поэтому после изменений в `frontend/src` выполните `npm run build` и закоммитьте `frontend/dist`.
+
+На бесплатном тарифе 512 МБ памяти, а диск очищается при перезапуске. Большие архивы (страна за много лет) загружайте на локальном запуске.
+
 ### Если бэкенд не запущен
 
 Фронтенд не падает: плашка показывает **OFFLINE SHOWCASE**, на карте — синтетические точки

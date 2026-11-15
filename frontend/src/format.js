@@ -217,6 +217,42 @@ export function errorText(detail) {
   return JSON.stringify(detail);
 }
 
+const megabytes = bytes => (bytes / 1048576 >= 10 ? Math.round(bytes / 1048576) : Math.round(bytes / 104857.6) / 10);
+
+/** Why a picked file cannot be uploaded, or '' when it can. Checked before any byte leaves the browser. */
+export function uploadProblem(file, limitBytes = 256 * 1048576) {
+  const name = String(file?.name || '').toLowerCase();
+  if (!name.endsWith('.zip') && !name.endsWith('.csv')) return 'only FIRMS .zip or .csv files are accepted';
+  if (!file.size) return 'the file is empty';
+  if (file.size > limitBytes) return `${megabytes(file.size)} MB is over the server limit of ${megabytes(limitBytes)} MB — request a smaller area or period on FIRMS`;
+  return '';
+}
+
+/** "Uploading… 43% (12 of 28 MB)" */
+export function uploadingText(sent, total) {
+  if (!total) return 'Uploading…';
+  if (sent >= total) return 'Upload complete — the server is opening the file…';
+  return `Uploading… ${Math.floor((sent / total) * 100)}% (${megabytes(sent)} of ${megabytes(total)} MB)`;
+}
+
+/** One line for the toast after a batch of uploads. results: [{name, valid?, already?, error?}] */
+export function uploadSummary(results) {
+  const ok = results.filter(r => !r.error), bad = results.filter(r => r.error);
+  const rows = ok.reduce((sum, r) => sum + (r.valid || 0), 0);
+  const parts = [];
+  if (results.length === 1 && ok.length) {
+    const r = ok[0];
+    parts.push(r.already ? `${r.name} was already imported.`
+      : r.valid ? `${r.name}: ${fmt(r.valid)} detections imported. Re-calibrate the model in Harmonize → Validation.`
+      : `${r.name} holds no detections (FIRMS sends a header-only file when a request finds no fire points).`);
+  } else if (ok.length) {
+    const fresh = ok.filter(r => !r.already).length;
+    parts.push(`${fresh} of ${results.length} files imported · ${fmt(rows)} detections.${ok.length - fresh ? ` ${ok.length - fresh} already on the server.` : ''}${rows ? ' Re-calibrate the model in Harmonize → Validation.' : ''}`);
+  }
+  if (bad.length) parts.push(`${results.length > 1 ? 'Refused — ' : ''}${bad.map(r => `${r.name}: ${r.error}`).join(' · ')}`);
+  return parts.join(' ');
+}
+
 export function histogram(values, bins, max) {
   const out = Array(bins).fill(0);
   for (const v of values) out[Math.min(bins - 1, Math.max(0, Math.floor((v / max) * bins)))]++;

@@ -5,7 +5,7 @@ import csv
 import hmac
 import io
 import json
-import uuid
+import logging
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,11 +13,11 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
 
-from .config import Settings, InputError, ConflictError, NotFoundError
+from .config import Settings, InputError, ConflictError, NotFoundError, UploadTooLarge
 from .events import fire_events
 from .firms import import_firms
 from .harmonize import fit_model, calendar, seasonality, LIMITATIONS
-from .ingest import ingest_file
+from .ingest import ingest_file, save_upload
 from .jobs import JobRunner
 from .matching import match_observations
 from .queries import detections_geojson, detection_frame, grid_geojson, json_records
@@ -25,7 +25,7 @@ from .schemas import (DetectionQuery, GridQuery, CalibrationRequest, CalendarQue
                       EventQuery, FirmsRequest)
 from .store import Store
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 
 def compact_model(model):
@@ -40,6 +40,17 @@ def compact_model(model):
     return out
 
 
+def demo_job(store, settings):
+    """Job body: import the bundled real sample and fit a model on it."""
+    def process(progress):
+        imported = ingest_file(store, settings.demo_sample, "china_sample.csv (bundled real excerpt)", progress)
+        model = fit_model(store, CalibrationRequest())
+        return {"dataset_id": imported["dataset_id"], "already_imported": imported["already_imported"],
+                "id": model["id"], "model_id": model["id"], "revision": store.revision(),
+                "note": "Real 123-124 E, 44-45 N excerpt; not the full-China validation model"}
+    return process
+
+
 def create_app(settings=None):
     settings = settings or Settings()
 
@@ -47,6 +58,15 @@ def create_app(settings=None):
     async def lifespan(app):
         app.state.store = Store(settings)
         app.state.jobs = JobRunner(app.state.store)
+        if settings.autoload_demo:
+            # Optional and never fatal: a host that wipes its disk on restart comes back with data.
+            try:
+                store = app.state.store
+                empty = not store.records("SELECT 1 AS x FROM datasets WHERE status='ready' LIMIT 1")
+                if empty and settings.demo_sample.is_file():
+                    app.state.jobs.submit("demo", demo_job(store, settings))
+            except Exception:
+                logging.getLogger(__name__).exception("AUTOLOAD_DEMO failed; the server continues with an empty database")
         try:
             yield
         finally:
@@ -63,6 +83,10 @@ def create_app(settings=None):
     def authenticate(key: Annotated[str | None, Depends(header)]):
         if settings.api_key and not hmac.compare_digest((key or "").encode(), settings.api_key.encode()):
             raise HTTPException(401, "Invalid or missing X-API-Key")
+
+    @app.exception_handler(UploadTooLarge)
+    async def too_large(_, exc):
+        return JSONResponse({"detail": str(exc)}, status_code=413)
 
     @app.exception_handler(InputError)
     async def bad_input(_, exc):
@@ -110,6 +134,7 @@ def create_app(settings=None):
                 "coverage": spans, "bounds": bounds, "years": years, "latest_model": model,
                 "capabilities": {"firms_live": bool(settings.firms_map_key), "auth_required": bool(settings.api_key),
                                  "demo_sample": settings.demo_sample.is_file()},
+                "limits": {"max_upload_bytes": settings.max_upload_bytes, "max_rows": settings.max_rows},
                 "grid_km": settings.grid_km, "region_km": settings.region_km,
                 "definition": "Observed file spans/bounds, NOT clear-sky/overpass coverage"}
 
@@ -119,16 +144,7 @@ def create_app(settings=None):
         sample = settings.demo_sample
         if not sample.is_file():
             raise HTTPException(404, "Bundled sample examples/china_sample.csv is missing")
-        store = request.app.state.store
-
-        def process(progress):
-            imported = ingest_file(store, sample, "china_sample.csv (bundled real excerpt)", progress)
-            model = fit_model(store, CalibrationRequest())
-            return {"dataset_id": imported["dataset_id"], "already_imported": imported["already_imported"],
-                    "id": model["id"], "model_id": model["id"], "revision": store.revision(),
-                    "note": "Real 123-124 E, 44-45 N excerpt; not the full-China validation model"}
-
-        return request.app.state.jobs.submit("demo", process)
+        return request.app.state.jobs.submit("demo", demo_job(request.app.state.store, settings))
 
     @router.get("/datasets", tags=["data"])
     def datasets(request: Request):
@@ -145,37 +161,23 @@ def create_app(settings=None):
                 "definition": "Observed file spans/bounds, NOT clear-sky/overpass coverage", "revision": store.revision()}
 
     @router.post("/datasets/upload", status_code=202, tags=["data"])
-    def upload(request: Request, file: Annotated[UploadFile, File(description="FIRMS CSV or ZIP; max 256 MiB")]):
-        name = Path(file.filename or "upload.csv").name
-        suffix = Path(name).suffix.lower()
-        if suffix not in [".csv", ".zip"]:
-            raise InputError("Only .csv and .zip are supported")
-        directory = settings.data_dir / "uploads"
-        directory.mkdir(exist_ok=True)
-        path = directory / f"{uuid.uuid4().hex}{suffix}"
+    def upload(request: Request, file: Annotated[UploadFile, File(description="FIRMS CSV or ZIP (MAX_UPLOAD_MB, default 256 MiB)")]):
         try:
-            size = 0
-            with path.open("wb") as handle:
-                while block := file.file.read(1024 * 1024):
-                    size += len(block)
-                    if size > settings.max_upload_bytes:
-                        raise HTTPException(413, "Upload exceeds 256 MiB")
-                    handle.write(block)
-            if size == 0:
-                raise InputError("Empty upload")
+            path, name = save_upload(file.file, file.filename, settings)
+        finally:
+            file.file.close()
 
-            def process(progress):
-                try:
-                    return ingest_file(request.app.state.store, path, name, progress)
-                finally:
-                    path.unlink(missing_ok=True)
+        def process(progress):
+            try:
+                return ingest_file(request.app.state.store, path, name, progress)
+            finally:
+                path.unlink(missing_ok=True)
 
+        try:
             return request.app.state.jobs.submit("ingest", process)
         except Exception:
             path.unlink(missing_ok=True)
             raise
-        finally:
-            file.file.close()
 
     @router.post("/ingest/firms", status_code=202, tags=["data"])
     def firms(body: FirmsRequest, request: Request):

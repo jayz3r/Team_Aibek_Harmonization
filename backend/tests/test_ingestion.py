@@ -94,3 +94,105 @@ def test_failed_import_keeps_previous_snapshot(store, tmp_path):
     assert store.revision() == revision
     assert len(store.frame("SELECT * FROM detections")) == 1
     assert len(store.frame("SELECT * FROM observations")) == 1
+
+
+# ---- FIRMS Archive Download ZIPs as people actually have them ---------------------------------------
+
+def _zip(path, members):
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        for name, data in members:
+            z.writestr(name, data)
+    return path
+
+
+def _csv(rows):
+    return pd.DataFrame(rows).to_csv(index=False)
+
+
+def test_firms_download_zip_with_archive_nrt_and_readme(store, tmp_path):
+    nrt = pd.DataFrame([observation(date="2023-03-01", version="2.0NRT")]).drop(columns=["type"]).to_csv(index=False)
+    path = _zip(tmp_path / "DL_FIRE_SV-C2_1.zip", [("fire_archive_SV-C2_1.csv", _csv([observation("N", version="")])),
+                                                    ("fire_nrt_SV-C2_1.csv", nrt), ("Readme.txt", "text")])
+    result = ingest_file(store, path)
+    assert [m["valid_rows"] for m in result["members"]] == [1, 1]
+    # A blank version is classified from the member name; NRT files have no `type` column.
+    assert [m["processing"] for m in result["members"]] == [["archive"], ["NRT"]]
+    assert sorted(store.frame("SELECT platform FROM detections").platform) == ["SNPP", "SNPP"]
+
+
+@pytest.mark.parametrize("code,platform", [("N", "SNPP"), ("N20", "NOAA20"), ("1", "NOAA20"), ("N21", "NOAA21"), ("2", "NOAA21")])
+def test_viirs_satellite_codes_used_by_firms(code, platform):
+    f, audit = normalize(pd.DataFrame([observation(code)]), "x.csv")
+    assert f.platform.tolist() == [platform] and audit["invalid_rows"] == 0
+
+
+def test_time_with_colon_is_accepted():
+    f, _ = normalize(pd.DataFrame([observation(time="04:32")]), "x.csv")
+    assert f.observed_at.iloc[0].strftime("%H:%M") == "04:32"
+
+
+def test_macos_resource_forks_and_hidden_files_are_ignored(store, tmp_path):
+    path = _zip(tmp_path / "mac.zip", [("data/fire_archive_SV-C2_1.csv", _csv([observation()])),
+                                       ("__MACOSX/data/._fire_archive_SV-C2_1.csv", b"\x00\x05\x16\x07binary"),
+                                       ("data/._other.csv", b"\x00\x01"), (".DS_Store", b"\x00")])
+    result = ingest_file(store, path)
+    assert [m["member"] for m in result["members"]] == ["data/fire_archive_SV-C2_1.csv"]
+    assert len(store.frame("SELECT * FROM detections")) == 1
+
+
+def test_header_only_and_zero_byte_members_import_as_empty(store, tmp_path):
+    header = ",".join(observation().keys()) + "\n"
+    path = _zip(tmp_path / "empty.zip", [("fire_archive_M-C61_1.csv", header), ("fire_nrt_M-C61_1.csv", "")])
+    result = ingest_file(store, path)
+    assert sum(m.get("valid_rows", 0) for m in result["members"]) == 0
+    assert store.records("SELECT status FROM datasets") == [{"status": "ready"}]
+
+
+@pytest.mark.parametrize("members,needle", [
+    ([("fire_1.shp", b"x"), ("fire_1.dbf", b"x"), ("Readme.txt", "t")], "shapefile"),
+    ([("fire_1.json", "[]")], "JSON"),
+    ([("inner.zip", b"PK")], "inner FIRMS ZIP"),
+    ([("Readme.txt", "t")], "no CSV"),
+])
+def test_zip_without_csv_explains_what_to_do(store, tmp_path, members, needle):
+    with pytest.raises(InputError, match=needle):
+        ingest_file(store, _zip(tmp_path / "x.zip", members))
+
+
+@pytest.mark.parametrize("content", [b"<html>Session expired</html>", b"PK\x03\x04 truncated"])
+def test_damaged_zip_is_an_input_error_not_a_crash(store, tmp_path, content):
+    path = tmp_path / "bad.zip"
+    path.write_bytes(content)
+    with pytest.raises(InputError, match="not a readable ZIP"):
+        ingest_file(store, path)
+    assert store.records("SELECT count(*) AS n FROM observations") == [{"n": 0}]
+
+
+@pytest.mark.parametrize("content,needle", [(b"\xff\xfe\x00\x01lat\x00\x9f\x92", "UTF-8"),
+                                            (b"a,b\n1,2\n1,2,3,4,5\n", "regular CSV")])
+def test_unreadable_csv_member_names_the_file(store, tmp_path, content, needle):
+    with pytest.raises(InputError, match=needle):
+        ingest_file(store, _zip(tmp_path / "x.zip", [("fire_archive_M-C61_1.csv", content)]))
+
+
+def test_progress_is_reported_per_chunk(store, tmp_path):
+    seen = []
+    path = tmp_path / "many.csv"
+    pd.DataFrame([observation(time=f"{h:02d}00") for h in range(6)]).to_csv(path, index=False)
+    ingest_file(store, path, progress=seen.append)       # the fixture store reads 2 rows per chunk
+    assert [p["input_rows"] for p in seen][:3] == [2, 4, 6]
+
+
+def test_save_upload_limits_and_names(tmp_path):
+    from app.config import Settings, UploadTooLarge
+    from app.ingest import save_upload
+    settings = Settings(data_dir=tmp_path / "db", max_upload_bytes=10)
+    with pytest.raises(InputError, match="Only .csv and .zip"):
+        save_upload(io.BytesIO(b"x"), "notes.txt", settings)
+    with pytest.raises(InputError, match="Empty upload"):
+        save_upload(io.BytesIO(b""), "a.zip", settings)
+    with pytest.raises(UploadTooLarge):
+        save_upload(io.BytesIO(b"x" * 11), "a.zip", settings)
+    assert not list((tmp_path / "db" / "uploads").glob("*"))
+    path, name = save_upload(io.BytesIO(b"x" * 10), "C:\\Users\\me\\..\\DL_FIRE.ZIP", settings)
+    assert name == "DL_FIRE.ZIP" and path.parent == tmp_path / "db" / "uploads" and path.suffix == ".zip"

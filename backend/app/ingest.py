@@ -5,11 +5,12 @@ import json
 import re
 import uuid
 import zipfile
+import zlib
 
 import numpy as np
 import pandas as pd
 
-from .config import InputError
+from .config import InputError, UploadTooLarge
 from .geo import grid_coordinates
 
 PLATFORMS = {
@@ -17,6 +18,9 @@ PLATFORMS = {
     "N": "SNPP", "SNPP": "SNPP", "S-NPP": "SNPP", "SUOMI-NPP": "SNPP",
     "N20": "NOAA20", "NOAA20": "NOAA20", "NOAA-20": "NOAA20", "J1": "NOAA20",
     "N21": "NOAA21", "NOAA21": "NOAA21", "NOAA-21": "NOAA21", "J2": "NOAA21",
+    # Older FIRMS VIIRS exports label NOAA-20 as "1" (JPSS-1); "2" follows the same convention.
+    "NPP": "SNPP", "1": "NOAA20", "JPSS-1": "NOAA20", "JPSS1": "NOAA20",
+    "2": "NOAA21", "JPSS-2": "NOAA21", "JPSS2": "NOAA21",
 }
 REQUIRED = {"latitude", "longitude", "acq_date", "acq_time", "satellite", "confidence", "daynight"}
 
@@ -30,7 +34,9 @@ def normalize(raw, member, grid_km=10.0):
     num = lambda name: pd.to_numeric(text(name), errors="coerce")
     platform = text("satellite").str.upper().map(PLATFORMS)
     sensor = pd.Series(np.where(platform.isin(["Terra", "Aqua"]), "MODIS", "VIIRS"), index=d.index)
-    latitude, longitude, time = num("latitude"), num("longitude"), num("acq_time")
+    # FIRMS writes 0432 / 432; some converters write 04:32.
+    acq_time = text("acq_time").str.replace(":", "", regex=False)
+    latitude, longitude, time = num("latitude"), num("longitude"), pd.to_numeric(acq_time, errors="coerce")
     dates = pd.to_datetime(text("acq_date"), format="%Y-%m-%d", errors="coerce")
     daynight = text("daynight").str.upper()
     valid_time = time.notna() & (time == np.floor(time)) & (time // 100).between(0, 23) & (time % 100).between(0, 59)
@@ -92,6 +98,24 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def _skipped_member(name):
+    """Archive bookkeeping that only looks like data: macOS resource forks, hidden files."""
+    parts = name.replace("\\", "/").split("/")
+    return "__MACOSX" in parts or parts[-1].startswith(".")
+
+
+def _no_csv_message(names):
+    lower = [n.lower() for n in names]
+    if any(n.endswith((".shp", ".dbf", ".shx")) for n in lower):
+        return ("This ZIP holds a shapefile, not CSV. On the FIRMS Archive Download page "
+                "request the same area again in CSV format and upload that ZIP.")
+    if any(n.endswith((".json", ".geojson")) for n in lower):
+        return "This ZIP holds JSON, not CSV. Request the FIRMS download in CSV format."
+    if any(n.endswith(".zip") for n in lower):
+        return "This ZIP only contains other ZIP files. Unpack it once and upload the inner FIRMS ZIP."
+    return "The ZIP contains no CSV files. Upload a FIRMS archive download (fire_archive_*.csv / fire_nrt_*.csv)."
+
+
 @contextmanager
 def csv_members(path, settings):
     if path.suffix.lower() == ".csv":
@@ -100,23 +124,83 @@ def csv_members(path, settings):
         with path.open("rb") as f:
             yield [(path.name, f)]
     elif path.suffix.lower() == ".zip":
-        with zipfile.ZipFile(path) as z:
-            members = [x for x in z.infolist() if x.filename.lower().endswith(".csv") and not x.is_dir()]
-            if not members or len(z.infolist()) > 100 or len(members) > 32:
-                raise InputError("ZIP must contain 1–32 CSV files, at most 100 members")
-            if sum(x.file_size for x in z.infolist()) > settings.max_uncompressed_bytes:
+        try:
+            archive = zipfile.ZipFile(path)
+        except (zipfile.BadZipFile, OSError):
+            raise InputError("The file is not a readable ZIP archive (damaged or incomplete download)") from None
+        with archive as z:
+            everything = [x for x in z.infolist() if not x.is_dir()]
+            if len(z.infolist()) > 100:
+                raise InputError("ZIP has more than 100 members; upload the FIRMS download as it is")
+            members = [x for x in everything if x.filename.lower().endswith(".csv") and not _skipped_member(x.filename)]
+            if not members:
+                raise InputError(_no_csv_message([x.filename for x in everything]))
+            if len(members) > 32:
+                raise InputError("ZIP must contain at most 32 CSV files")
+            if any(x.flag_bits & 0x1 for x in members):
+                raise InputError("The ZIP is password-protected; upload an unencrypted archive")
+            if sum(x.file_size for x in everything) > settings.max_uncompressed_bytes:
                 raise InputError("ZIP exceeds uncompressed size limit")
             if any(x.file_size / max(1, x.compress_size) > 300 for x in members):
                 raise InputError("ZIP compression ratio exceeds limit")
             # Stream member bytes, never extract paths onto the filesystem.
-            opened = [(x.filename, z.open(x)) for x in members]
+            opened = []
             try:
+                for x in members:
+                    try:
+                        opened.append((x.filename, z.open(x)))
+                    except (NotImplementedError, RuntimeError, zipfile.BadZipFile):
+                        raise InputError(f"{x.filename}: unsupported or damaged ZIP entry; re-create the ZIP with standard compression") from None
                 yield opened
             finally:
                 for _, f in opened:
                     f.close()
     else:
         raise InputError("Supported uploads: FIRMS .csv and .zip containing CSV files")
+
+
+def save_upload(stream, filename, settings):
+    """Copy an uploaded file object into data_dir/uploads under a random name.
+
+    Returns (path, display_name). Raises InputError for a wrong type, an empty or an oversized file;
+    nothing is left on disk in that case.
+    """
+    # Keep only the last path part, whichever slash the client used; it is a label, never a path.
+    name = re.split(r"[\\/]", str(filename or "upload.csv"))[-1][:200] or "upload.csv"
+    suffix = Path(name).suffix.lower()
+    if suffix not in [".csv", ".zip"]:
+        raise InputError("Only .csv and .zip are supported")
+    directory = settings.data_dir / "uploads"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{uuid.uuid4().hex}{suffix}"
+    try:
+        size = 0
+        with path.open("wb") as handle:
+            while block := stream.read(1024 * 1024):
+                size += len(block)
+                if size > settings.max_upload_bytes:
+                    raise UploadTooLarge(f"Upload exceeds {max(1, settings.max_upload_bytes // (1024 * 1024))} MiB; upload a smaller area or period")
+                handle.write(block)
+        if size == 0:
+            raise InputError("Empty upload")
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
+    return path, name
+
+
+def _read_chunks(handle, name, chunk_rows):
+    """Yield string-typed chunks; turn parser failures into messages a user can act on."""
+    try:
+        yield from pd.read_csv(handle, dtype=str, chunksize=chunk_rows, encoding="utf-8-sig")
+    except pd.errors.EmptyDataError:
+        return  # a 0-byte member: FIRMS never sends one, other tools do
+    except pd.errors.ParserError:
+        raise InputError(f"{name}: not a regular CSV table (broken quoting or ragged rows)") from None
+    except UnicodeDecodeError:
+        raise InputError(f"{name}: not UTF-8 text; FIRMS CSV files are plain UTF-8") from None
+    except (zipfile.BadZipFile, EOFError, zlib.error):
+        raise InputError(f"{name}: the ZIP entry is damaged (incomplete download?)") from None
 
 
 def ingest_file(store, path: Path, display_name=None, progress=None):
@@ -133,7 +217,7 @@ def ingest_file(store, path: Path, display_name=None, progress=None):
         with csv_members(path, store.settings) as members:
             for name, handle in members:
                 audit = {"member": name, "columns": [], "platforms": [], "processing": [], "start": None, "end": None}
-                for chunk in pd.read_csv(handle, dtype=str, chunksize=store.settings.chunk_rows, encoding="utf-8-sig"):
+                for chunk in _read_chunks(handle, name, store.settings.chunk_rows):
                     total += len(chunk)
                     if total > store.settings.max_rows:
                         raise InputError("Dataset exceeds row limit")
@@ -159,6 +243,8 @@ def ingest_file(store, path: Path, display_name=None, progress=None):
                                     CAST(latitude AS VARCHAR),CAST(longitude AS VARCHAR))), * FROM incoming""")
                         finally:
                             c.unregister("incoming")
+                    if progress:  # per chunk, so a single large CSV still shows movement
+                        progress({"input_rows": total, "members_completed": len(audits)})
                 audits.append(audit)
                 if progress:
                     progress({"input_rows": total, "members_completed": len(audits)})

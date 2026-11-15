@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {annualTotals, bboxOf, calendarMatrix, defaultYear, errorText, featureToRow, histogram, insights, lastDay, monthRange, monthValue, platformsFor, yearsOf} from '../src/format.js';
+import {uploadProblem, uploadingText, uploadSummary, annualTotals, bboxOf, calendarMatrix, defaultYear, errorText, featureToRow, histogram, insights, lastDay, monthRange, monthValue, platformsFor, yearsOf} from '../src/format.js';
 
 // time windows (inclusive, leap years)
 assert.deepEqual(monthRange('2024', '2'), {start: '2024-02-01', end: '2024-02-29'});
@@ -82,4 +82,23 @@ assert.equal(errorText([{loc: ['body', 'start'], msg: 'Input should be a valid d
 assert.equal(errorText(undefined), '');
 
 assert.deepEqual(histogram([0, .1, .49, .5, 1, 5], 2, 1), [3, 3]);
+// upload helpers: checks before sending, progress text, one-line result
+const MB = 1048576;
+assert.equal(uploadProblem({name: 'DL_FIRE_SV-C2_704513.zip', size: 5 * MB}), '');
+assert.equal(uploadProblem({name: 'fire_archive.CSV', size: 10}), '');
+assert.match(uploadProblem({name: 'fire.shp', size: 10}), /only FIRMS \.zip or \.csv/);
+assert.match(uploadProblem({name: 'a.zip', size: 0}), /empty/);
+assert.match(uploadProblem({name: 'a.zip', size: 300 * MB}), /300 MB is over the server limit of 256 MB/);
+assert.equal(uploadProblem({name: 'a.zip', size: 300 * MB}, 512 * MB), '');
+assert.equal(uploadingText(0, 0), 'Uploading…');
+assert.equal(uploadingText(12 * MB, 28 * MB), 'Uploading… 42% (12 of 28 MB)');
+assert.equal(uploadingText(1.5 * MB, 3 * MB), 'Uploading… 50% (1.5 of 3 MB)');
+assert.match(uploadingText(28 * MB, 28 * MB), /Upload complete/);
+assert.equal(uploadSummary([{name: 'a.zip', valid: 2982}]), 'a.zip: 2,982 detections imported. Re-calibrate the model in Harmonize → Validation.');
+assert.equal(uploadSummary([{name: 'a.zip', valid: 0, already: true}]), 'a.zip was already imported.');
+assert.match(uploadSummary([{name: 'a.zip', valid: 0}]), /holds no detections/);
+assert.equal(uploadSummary([{name: 'a.zip', error: 'This ZIP holds a shapefile'}]), 'a.zip: This ZIP holds a shapefile');
+assert.equal(uploadSummary([{name: 'a.zip', valid: 10}, {name: 'b.zip', valid: 5}, {name: 'c.zip', already: true, valid: 0}, {name: 'd.txt', error: 'only FIRMS .zip or .csv files are accepted'}]),
+  '2 of 4 files imported · 15 detections. 1 already on the server. Re-calibrate the model in Harmonize → Validation. Refused — d.txt: only FIRMS .zip or .csv files are accepted');
+
 console.log('PASS: time windows, platform filters, feature mapping, bboxes, year defaults, timeline values, showcase report, insights, API errors.');
