@@ -1,0 +1,35 @@
+@base = http://localhost:8000
+@model = replace-with-result-id-from-calibration-job
+
+### Health
+GET {{base}}/health
+
+### Fit on 2013–2024, evaluate only on 2025; poll the returned status_url
+POST {{base}}/api/v1/harmonization/calibrate
+Content-Type: application/json
+
+{"train_start_year":2013,"train_end_year":2024,"test_year":2025}
+
+### Native map points (lon, lat)
+POST {{base}}/api/v1/detections/query
+Content-Type: application/json
+
+{"area":{"bbox":[123,44,124,45]},"start":"2025-03-01","end":"2025-03-31","daynight":"both","limit":1000}
+
+### Monthly historical calendar; extrapolation is explicitly enabled for pre-2013 MODIS
+POST {{base}}/api/v1/analytics/calendar
+Content-Type: application/json
+
+{"start":"2002-01-01","end":"2025-12-31","model_id":"{{model}}","allow_extrapolation":true}
+
+### Seasonality and unusual months
+POST {{base}}/api/v1/analytics/seasonality
+Content-Type: application/json
+
+{"start":"2025-01-01","end":"2025-12-31","model_id":"{{model}}","baseline_start_year":2013,"baseline_end_year":2024}
+
+### Candidate co-observations; change the date/AOI to your event
+POST {{base}}/api/v1/harmonization/matches
+Content-Type: application/json
+
+{"area":{"bbox":[123,44,124,45]},"start":"2025-03-01","end":"2025-03-07","modis_platform":"Aqua","viirs_platform":"SNPP","distance_km":1,"time_minutes":30,"daynight":"both"}

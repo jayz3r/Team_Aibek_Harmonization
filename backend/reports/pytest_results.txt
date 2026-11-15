@@ -1,0 +1,15 @@
+Validation date: 2026-11-14
+Command: python -m pytest -q
+Runtime: Python 3.12
+
+........................................ [100%]
+40 passed, 2 warnings in 3.92s
+
+Non-failing environment deprecations:
+- anyio pytest plugin uses the CallSpec2 alias scheduled for removal in pytest 10.
+- Starlette TestClient warns that httpx support is deprecated in favor of httpx2.
+
+The pinned httpx-backed TestClient completed all tests successfully.
+Separate real TCP validation: 14 checks passed through uvicorn; see http_smoke.json.
+Docker build was not run: Docker is not installed in this execution environment.
+Live FIRMS request was not run: no user MAP_KEY; HTTP client tests use MockTransport.

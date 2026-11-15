@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {addCityLayers,inFocus,buildingCentre,cities} from '../src/cities.js';
+import {rectangle,addLandscape} from '../src/landscape.js';
+import {validateStyleMin} from '@maplibre/maplibre-gl-style-spec';
+const area=rectangle({lng:100,lat:20},{lng:110,lat:30});
+assert(inFocus([105,25],area));assert(!inFocus([115,25],area));assert(!inFocus([105,25],null));
+const hole={type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[[[0,0],[10,0],[10,10],[0,10],[0,0]],[[4,4],[6,4],[6,6],[4,6],[4,4]]]}}]};
+assert(inFocus([2,2],hole));assert(!inFocus([5,5],hole));
+assert.deepEqual(buildingCentre(area.features[0].geometry),[105,25]);
+const style={version:8,sources:{},layers:[{id:'base',type:'background',paint:{'background-color':'#293840'}}]};
+const m={addSource(id,s){style.sources[id]=s;},addLayer(l,before){const i=style.layers.findIndex(x=>x.id===before);if(i<0)style.layers.push(l);else style.layers.splice(i,0,l);},setLight(l){style.light=l;}};
+addLandscape(m);addCityLayers(m);assert.deepEqual(validateStyleMin(style).map(e=>e.message),[]);
+for(const c of cities)assert(c.zoom>=14&&c.zoom<=16);
+console.log('PASS: building area membership, holes, missing focus, footprint centre, urban layer schema, city zooms.');

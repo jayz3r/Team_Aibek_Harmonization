@@ -1,0 +1,8 @@
+data
+validation_data
+.venv
+.git
+__pycache__
+.pytest_cache
+*.zip
+*.duckdb*

@@ -1,0 +1,1353 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MODIS–VIIRS Harmonization API",
+    "description": "FIRMS ingestion, equal-area activity indicators, held-out calibration, calendars and anomalies. All times UTC. Research prototype.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/methodology": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Methodology",
+        "operationId": "methodology_api_v1_methodology_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/datasets": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Datasets",
+        "operationId": "datasets_api_v1_datasets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/coverage": {
+      "get": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Coverage",
+        "operationId": "coverage_api_v1_coverage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/datasets/upload": {
+      "post": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Upload",
+        "operationId": "upload_api_v1_datasets_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_api_v1_datasets_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ingest/firms": {
+      "post": {
+        "tags": [
+          "data"
+        ],
+        "summary": "Firms",
+        "operationId": "firms_api_v1_ingest_firms_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirmsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Get Job",
+        "operationId": "get_job_api_v1_jobs__job_id__get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/detections/query": {
+      "post": {
+        "tags": [
+          "map"
+        ],
+        "summary": "Detections",
+        "operationId": "detections_api_v1_detections_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectionQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/grid/query": {
+      "post": {
+        "tags": [
+          "map"
+        ],
+        "summary": "Grid",
+        "operationId": "grid_api_v1_grid_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GridQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/harmonization/calibrate": {
+      "post": {
+        "tags": [
+          "harmonization"
+        ],
+        "summary": "Calibrate",
+        "operationId": "calibrate_api_v1_harmonization_calibrate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalibrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/harmonization/models": {
+      "get": {
+        "tags": [
+          "harmonization"
+        ],
+        "summary": "Models",
+        "operationId": "models_api_v1_harmonization_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/harmonization/models/{model_id}": {
+      "get": {
+        "tags": [
+          "harmonization"
+        ],
+        "summary": "Model",
+        "operationId": "model_api_v1_harmonization_models__model_id__get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/harmonization/matches": {
+      "post": {
+        "tags": [
+          "harmonization"
+        ],
+        "summary": "Matches",
+        "operationId": "matches_api_v1_harmonization_matches_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/analytics/calendar": {
+      "post": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Calendar Route",
+        "operationId": "calendar_route_api_v1_analytics_calendar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/analytics/seasonality": {
+      "post": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Seasonal Route",
+        "operationId": "seasonal_route_api_v1_analytics_seasonality_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeasonalQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/exports/detections.csv": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Detections",
+        "operationId": "export_detections_api_v1_exports_detections_csv_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectionQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/v1/exports/calendar.csv": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Export Calendar",
+        "operationId": "export_calendar_api_v1_exports_calendar_csv_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Area": {
+        "properties": {
+          "bbox": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 4,
+                "minItems": 4
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox",
+            "description": "[west, south, east, north], WGS84. No antimeridian crossing."
+          },
+          "polygon": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Polygon",
+            "description": "GeoJSON Polygon or MultiPolygon geometry, [longitude, latitude]."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Area"
+      },
+      "Body_upload_api_v1_datasets_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "FIRMS CSV or ZIP; max 256 MiB"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_api_v1_datasets_upload_post"
+      },
+      "CalendarQuery": {
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "daynight": {
+            "type": "string",
+            "enum": [
+              "D",
+              "N",
+              "both"
+            ],
+            "title": "Daynight",
+            "default": "D"
+          },
+          "processing": {
+            "type": "string",
+            "enum": [
+              "archive",
+              "NRT",
+              "RT",
+              "URT",
+              "unknown"
+            ],
+            "title": "Processing",
+            "default": "archive"
+          },
+          "hotspot_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "vegetation"
+            ],
+            "title": "Hotspot Scope",
+            "default": "all"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "Terra",
+              "Aqua",
+              "SNPP",
+              "NOAA20",
+              "NOAA21"
+            ],
+            "title": "Platform",
+            "default": "auto"
+          },
+          "allow_extrapolation": {
+            "type": "boolean",
+            "title": "Allow Extrapolation",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "CalendarQuery"
+      },
+      "CalibrationRequest": {
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "reference": {
+            "type": "string",
+            "enum": [
+              "Terra",
+              "Aqua",
+              "SNPP",
+              "NOAA20",
+              "NOAA21"
+            ],
+            "title": "Reference",
+            "default": "SNPP"
+          },
+          "train_start_year": {
+            "type": "integer",
+            "maximum": 2100.0,
+            "minimum": 2000.0,
+            "title": "Train Start Year",
+            "default": 2013
+          },
+          "train_end_year": {
+            "type": "integer",
+            "maximum": 2100.0,
+            "minimum": 2001.0,
+            "title": "Train End Year",
+            "default": 2024
+          },
+          "test_year": {
+            "type": "integer",
+            "maximum": 2100.0,
+            "minimum": 2002.0,
+            "title": "Test Year",
+            "default": 2025
+          },
+          "hotspot_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "vegetation"
+            ],
+            "title": "Hotspot Scope",
+            "default": "all"
+          },
+          "min_train_rows": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 3.0,
+            "title": "Min Train Rows",
+            "default": 24
+          },
+          "bootstrap_samples": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 30.0,
+            "title": "Bootstrap Samples",
+            "default": 200
+          },
+          "seed": {
+            "type": "integer",
+            "title": "Seed",
+            "default": 42
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CalibrationRequest"
+      },
+      "DetectionQuery": {
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "daynight": {
+            "type": "string",
+            "enum": [
+              "D",
+              "N",
+              "both"
+            ],
+            "title": "Daynight",
+            "default": "D"
+          },
+          "processing": {
+            "type": "string",
+            "enum": [
+              "archive",
+              "NRT",
+              "RT",
+              "URT",
+              "unknown"
+            ],
+            "title": "Processing",
+            "default": "archive"
+          },
+          "hotspot_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "vegetation"
+            ],
+            "title": "Hotspot Scope",
+            "default": "all"
+          },
+          "platforms": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "Terra",
+                "Aqua",
+                "SNPP",
+                "NOAA20",
+                "NOAA21"
+              ]
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Platforms"
+          },
+          "quality_only": {
+            "type": "boolean",
+            "title": "Quality Only",
+            "default": true
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 1000
+          },
+          "offset": {
+            "type": "integer",
+            "maximum": 10000000.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "DetectionQuery"
+      },
+      "FirmsRequest": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "MODIS_NRT",
+              "MODIS_SP",
+              "VIIRS_SNPP_NRT",
+              "VIIRS_SNPP_SP",
+              "VIIRS_NOAA20_NRT",
+              "VIIRS_NOAA20_SP",
+              "VIIRS_NOAA21_NRT",
+              "VIIRS_NOAA21_SP"
+            ],
+            "title": "Source"
+          },
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "days": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "default": 1
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "area"
+        ],
+        "title": "FirmsRequest"
+      },
+      "GridQuery": {
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "daynight": {
+            "type": "string",
+            "enum": [
+              "D",
+              "N",
+              "both"
+            ],
+            "title": "Daynight",
+            "default": "D"
+          },
+          "processing": {
+            "type": "string",
+            "enum": [
+              "archive",
+              "NRT",
+              "RT",
+              "URT",
+              "unknown"
+            ],
+            "title": "Processing",
+            "default": "archive"
+          },
+          "hotspot_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "vegetation"
+            ],
+            "title": "Hotspot Scope",
+            "default": "all"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "Terra",
+              "Aqua",
+              "SNPP",
+              "NOAA20",
+              "NOAA21"
+            ],
+            "title": "Platform",
+            "default": "SNPP"
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 20000.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 5000
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "GridQuery"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "MatchQuery": {
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "daynight": {
+            "type": "string",
+            "enum": [
+              "D",
+              "N",
+              "both"
+            ],
+            "title": "Daynight",
+            "default": "D"
+          },
+          "processing": {
+            "type": "string",
+            "enum": [
+              "archive",
+              "NRT",
+              "RT",
+              "URT",
+              "unknown"
+            ],
+            "title": "Processing",
+            "default": "archive"
+          },
+          "hotspot_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "vegetation"
+            ],
+            "title": "Hotspot Scope",
+            "default": "all"
+          },
+          "modis_platform": {
+            "type": "string",
+            "enum": [
+              "Terra",
+              "Aqua"
+            ],
+            "title": "Modis Platform",
+            "default": "Aqua"
+          },
+          "viirs_platform": {
+            "type": "string",
+            "enum": [
+              "SNPP",
+              "NOAA20",
+              "NOAA21"
+            ],
+            "title": "Viirs Platform",
+            "default": "SNPP"
+          },
+          "distance_km": {
+            "type": "number",
+            "maximum": 10.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Distance Km",
+            "default": 1.0
+          },
+          "time_minutes": {
+            "type": "integer",
+            "maximum": 180.0,
+            "minimum": 1.0,
+            "title": "Time Minutes",
+            "default": 30
+          },
+          "max_pairs": {
+            "type": "integer",
+            "maximum": 50000.0,
+            "minimum": 1.0,
+            "title": "Max Pairs",
+            "default": 10000
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "MatchQuery"
+      },
+      "SeasonalQuery": {
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/Area"
+          },
+          "start": {
+            "type": "string",
+            "format": "date",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date",
+            "title": "End"
+          },
+          "daynight": {
+            "type": "string",
+            "enum": [
+              "D",
+              "N",
+              "both"
+            ],
+            "title": "Daynight",
+            "default": "D"
+          },
+          "processing": {
+            "type": "string",
+            "enum": [
+              "archive",
+              "NRT",
+              "RT",
+              "URT",
+              "unknown"
+            ],
+            "title": "Processing",
+            "default": "archive"
+          },
+          "hotspot_scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "vegetation"
+            ],
+            "title": "Hotspot Scope",
+            "default": "all"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "Terra",
+              "Aqua",
+              "SNPP",
+              "NOAA20",
+              "NOAA21"
+            ],
+            "title": "Platform",
+            "default": "auto"
+          },
+          "allow_extrapolation": {
+            "type": "boolean",
+            "title": "Allow Extrapolation",
+            "default": false
+          },
+          "baseline_start_year": {
+            "type": "integer",
+            "maximum": 2100.0,
+            "minimum": 2000.0,
+            "title": "Baseline Start Year",
+            "default": 2013
+          },
+          "baseline_end_year": {
+            "type": "integer",
+            "maximum": 2100.0,
+            "minimum": 2000.0,
+            "title": "Baseline End Year",
+            "default": 2024
+          },
+          "min_baseline_years": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 3.0,
+            "title": "Min Baseline Years",
+            "default": 3
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "SeasonalQuery"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  }
+}

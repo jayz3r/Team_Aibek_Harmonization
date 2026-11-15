@@ -1,0 +1,98 @@
+{
+  "dataset": "17,075 real sample rows",
+  "transport": "uvicorn TCP on loopback",
+  "checks": [
+    {
+      "route": "/health",
+      "status": 200,
+      "seconds": 0.002
+    },
+    {
+      "route": "/docs",
+      "status": 200,
+      "seconds": 0.001
+    },
+    {
+      "route": "/openapi.json",
+      "status": 200,
+      "seconds": 0.044
+    },
+    {
+      "route": "/api/v1/datasets",
+      "status": 200,
+      "seconds": 0.008
+    },
+    {
+      "route": "/api/v1/coverage",
+      "status": 200,
+      "seconds": 0.028
+    },
+    {
+      "route": "/api/v1/harmonization/models",
+      "status": 200,
+      "seconds": 0.005
+    },
+    {
+      "route": "/api/v1/detections/query",
+      "status": 200,
+      "seconds": 0.016,
+      "bytes": 30595,
+      "result_rows": 50
+    },
+    {
+      "route": "/api/v1/grid/query",
+      "status": 200,
+      "seconds": 0.01,
+      "bytes": 16600,
+      "result_rows": 44
+    },
+    {
+      "route": "/api/v1/analytics/calendar",
+      "status": 200,
+      "seconds": 0.058,
+      "bytes": 7002,
+      "result_rows": 12
+    },
+    {
+      "route": "/api/v1/analytics/seasonality",
+      "status": 200,
+      "seconds": 0.365,
+      "bytes": 10491
+    },
+    {
+      "route": "/api/v1/harmonization/matches",
+      "status": 200,
+      "seconds": 0.056,
+      "bytes": 1334,
+      "result_rows": 5,
+      "summary": {
+        "modis_points": 32,
+        "viirs_points": 151,
+        "matched_modis_points": 5,
+        "matched_viirs_points": 5,
+        "unmatched_modis_points": 27,
+        "unmatched_viirs_points": 146,
+        "ambiguous_viirs_points": 0,
+        "candidate_pairs": 5
+      }
+    },
+    {
+      "route": "/api/v1/exports/calendar.csv",
+      "status": 200,
+      "seconds": 0.052,
+      "bytes": 639
+    },
+    {
+      "route": "/api/v1/exports/detections.csv",
+      "status": 200,
+      "seconds": 0.065,
+      "bytes": 98950
+    },
+    {
+      "route": "/api/v1/datasets/upload",
+      "status": 202,
+      "job_status": "succeeded",
+      "idempotent": true
+    }
+  ]
+}

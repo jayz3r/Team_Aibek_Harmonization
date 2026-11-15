@@ -1,0 +1,150 @@
+{
+  "counts": {
+    "canonical_rows": 15656810,
+    "quality_rows": 14770763.0,
+    "input_rows": 15656817,
+    "activity_type_rows": 7832056,
+    "grid_cell_day_periods": 7558409,
+    "ingestion_seconds": 289.4,
+    "calibration_seconds": 4.52,
+    "archive_spans": [
+      {
+        "platform": "NOAA20",
+        "start": "2018-04-01T00:00:00.000",
+        "end": "2026-07-31T00:00:00.000",
+        "detections": 3906021,
+        "west": 73.66865,
+        "south": 18.28,
+        "east": 134.76512,
+        "north": 53.47976
+      },
+      {
+        "platform": "NOAA21",
+        "start": "2023-03-01T00:00:00.000",
+        "end": "2026-07-31T00:00:00.000",
+        "detections": 1589293,
+        "west": 74.08739,
+        "south": 18.29022,
+        "east": 134.73482,
+        "north": 53.39599
+      },
+      {
+        "platform": "Aqua",
+        "start": "2002-07-04T00:00:00.000",
+        "end": "2026-08-31T00:00:00.000",
+        "detections": 1201683,
+        "west": 73.6551,
+        "south": 15.7803,
+        "east": 134.7589,
+        "north": 53.5587
+      },
+      {
+        "platform": "SNPP",
+        "start": "2012-01-20T00:00:00.000",
+        "end": "2026-07-31T00:00:00.000",
+        "detections": 7390575,
+        "west": 74.08559,
+        "south": 18.21671,
+        "east": 134.76526,
+        "north": 53.56178
+      },
+      {
+        "platform": "Terra",
+        "start": "2000-11-01T00:00:00.000",
+        "end": "2026-08-31T00:00:00.000",
+        "detections": 1174588,
+        "west": 73.9674,
+        "south": 18.2328,
+        "east": 134.757,
+        "north": 53.5598
+      }
+    ],
+    "nrt_spans": [
+      {
+        "platform": "NOAA21",
+        "start": "2026-08-01T00:00:00.000",
+        "end": "2026-11-14T00:00:00.000",
+        "detections": 131574,
+        "west": 75.01884,
+        "south": 18.3002,
+        "east": 134.70105,
+        "north": 53.13559
+      },
+      {
+        "platform": "NOAA20",
+        "start": "2026-08-01T00:00:00.000",
+        "end": "2026-11-14T00:00:00.000",
+        "detections": 138189,
+        "west": 73.96506,
+        "south": 18.30464,
+        "east": 134.68132,
+        "north": 53.13269
+      },
+      {
+        "platform": "Aqua",
+        "start": "2026-09-01T00:00:00.000",
+        "end": "2026-11-13T00:00:00.000",
+        "detections": 7695,
+        "west": 75.99447,
+        "south": 18.60448,
+        "east": 134.63554,
+        "north": 53.24369
+      },
+      {
+        "platform": "SNPP",
+        "start": "2026-08-01T00:00:00.000",
+        "end": "2026-11-02T00:00:00.000",
+        "detections": 111052,
+        "west": 75.01706,
+        "south": 18.30073,
+        "east": 134.68158,
+        "north": 53.24096
+      },
+      {
+        "platform": "Terra",
+        "start": "2026-09-01T00:00:00.000",
+        "end": "2026-11-14T00:00:00.000",
+        "detections": 6140,
+        "west": 75.82792,
+        "south": 18.30207,
+        "east": 134.67697,
+        "north": 53.13415
+      }
+    ],
+    "calibration_and_report_seconds": 18.01
+  },
+  "datasets": [
+    {
+      "id": "b1f8d445b43343919d66aaa2913ece66",
+      "name": "MODISCHINA.zip",
+      "sha256": "bde13c1907de42a0185447c93a5f4d970759301899928c1a7666e98584bfddb4",
+      "status": "ready",
+      "created_at": "2026-11-14T18:13:20.051",
+      "audit": "[{\"member\": \"fire_archive_M-C61_847119.csv\", \"columns\": [\"latitude\", \"longitude\", \"brightness\", \"scan\", \"track\", \"acq_date\", \"acq_time\", \"satellite\", \"instrument\", \"confidence\", \"version\", \"bright_t31\", \"frp\", \"daynight\", \"type\"], \"platforms\": [\"Aqua\", \"Terra\"], \"processing\": [\"archive\"], \"start\": \"2000-11-01T01:37:00\", \"end\": \"2026-08-31T21:27:00\", \"input_rows\": 2376271, \"valid_rows\": 2376271, \"invalid_rows\": 0, \"quality_rows\": 2197145, \"unknown_confidence_rows\": 0, \"unknown_type_rows\": 0, \"invalid_coordinate_rows\": 0, \"invalid_time_rows\": 0, \"unknown_platform_rows\": 0, \"instrument_mismatch_rows\": 0}, {\"member\": \"fire_nrt_M-C61_847119.csv\", \"columns\": [\"latitude\", \"longitude\", \"brightness\", \"scan\", \"track\", \"acq_date\", \"acq_time\", \"satellite\", \"instrument\", \"confidence\", \"version\", \"bright_t31\", \"frp\", \"daynight\"], \"platforms\": [\"Aqua\", \"Terra\"], \"processing\": [\"NRT\"], \"start\": \"2026-09-01T01:05:00\", \"end\": \"2026-11-14T01:49:00\", \"input_rows\": 13835, \"valid_rows\": 13835, \"invalid_rows\": 0, \"quality_rows\": 12348, \"unknown_confidence_rows\": 0, \"unknown_type_rows\": 13835, \"invalid_coordinate_rows\": 0, \"invalid_time_rows\": 0, \"unknown_platform_rows\": 0, \"instrument_mismatch_rows\": 0}]"
+    },
+    {
+      "id": "780511ea6a4b4380a6a74ec93c33c641",
+      "name": "SUOMIVIIRSCHINA.zip",
+      "sha256": "8ccf7477c481fb078e76e1cf10327f8e9efd5a0070edab74a652ccd6374bf2bd",
+      "status": "ready",
+      "created_at": "2026-11-14T18:13:52.821",
+      "audit": "[{\"member\": \"fire_archive_SV-C2_847122.csv\", \"columns\": [\"latitude\", \"longitude\", \"brightness\", \"scan\", \"track\", \"acq_date\", \"acq_time\", \"satellite\", \"instrument\", \"confidence\", \"version\", \"bright_t31\", \"frp\", \"daynight\", \"type\"], \"platforms\": [\"SNPP\"], \"processing\": [\"archive\"], \"start\": \"2012-01-20T04:08:00\", \"end\": \"2026-07-31T21:56:00\", \"input_rows\": 7390578, \"valid_rows\": 7390578, \"invalid_rows\": 0, \"quality_rows\": 7015965, \"unknown_confidence_rows\": 0, \"unknown_type_rows\": 0, \"invalid_coordinate_rows\": 0, \"invalid_time_rows\": 0, \"unknown_platform_rows\": 0, \"instrument_mismatch_rows\": 0}, {\"member\": \"fire_nrt_SV-C2_847122.csv\", \"columns\": [\"latitude\", \"longitude\", \"brightness\", \"scan\", \"track\", \"acq_date\", \"acq_time\", \"satellite\", \"instrument\", \"confidence\", \"version\", \"bright_t31\", \"frp\", \"daynight\"], \"platforms\": [\"SNPP\"], \"processing\": [\"NRT\"], \"start\": \"2026-08-01T04:17:00\", \"end\": \"2026-11-02T05:16:00\", \"input_rows\": 111052, \"valid_rows\": 111052, \"invalid_rows\": 0, \"quality_rows\": 104588, \"unknown_confidence_rows\": 0, \"unknown_type_rows\": 111052, \"invalid_coordinate_rows\": 0, \"invalid_time_rows\": 0, \"unknown_platform_rows\": 0, \"instrument_mismatch_rows\": 0}]"
+    },
+    {
+      "id": "0bc0b0313a1b4ffb89feaa5ba92d8edf",
+      "name": "J1VIIRSCHINa.zip",
+      "sha256": "421bc3b0aeb92795112a0a3a9f13605bbf71d0172784417202cf21068853bb3d",
+      "status": "ready",
+      "created_at": "2026-11-14T18:15:40.149",
+      "audit": "[{\"member\": \"fire_archive_J1V-C2_847120.csv\", \"columns\": [\"latitude\", \"longitude\", \"brightness\", \"scan\", \"track\", \"acq_date\", \"acq_time\", \"satellite\", \"instrument\", \"confidence\", \"version\", \"bright_t31\", \"frp\", \"daynight\", \"type\"], \"platforms\": [\"NOAA20\"], \"processing\": [\"archive\"], \"start\": \"2018-04-01T02:50:00\", \"end\": \"2026-07-31T20:36:00\", \"input_rows\": 3906023, \"valid_rows\": 3906023, \"invalid_rows\": 0, \"quality_rows\": 3687530, \"unknown_confidence_rows\": 0, \"unknown_type_rows\": 0, \"invalid_coordinate_rows\": 0, \"invalid_time_rows\": 0, \"unknown_platform_rows\": 0, \"instrument_mismatch_rows\": 0}, {\"member\": \"fire_nrt_J1V-C2_847120.csv\", \"columns\": [\"latitude\", \"longitude\", \"brightness\", \"scan\", \"track\", \"acq_date\", \"acq_time\", \"satellite\", \"instrument\", \"confidence\", \"version\", \"bright_t31\", \"frp\", \"daynight\"], \"platforms\": [\"NOAA20\"], \"processing\": [\"NRT\"], \"start\": \"2026-08-01T04:32:00\", \"end\": \"2026-11-14T05:10:00\", \"input_rows\": 138189, \"valid_rows\": 138189, \"invalid_rows\": 0, \"quality_rows\": 130380, \"unknown_confidence_rows\": 0, \"unknown_type_rows\": 138189, \"invalid_coordinate_rows\": 0, \"invalid_time_rows\": 0, \"unknown_platform_rows\": 0, \"instrument_mismatch_rows\": 0}]"
+    },
+    {
+      "id": "57e97ae429244b20a2ae40107cf214f3",
+      "name": "J2VIIRSCHINA.zip",
+      "sha256": "9e600f67e1384305417cf5f4f2faee9cd39d65668dee478ad715cf1e79578dcb",
+      "status": "ready",
+      "created_at": "2026-11-14T18:17:06.664",
+      "audit": "[{\"member\": \"fire_archive_J2V-C2_847121.csv\", \"columns\": [\"latitude\", \"longitude\", \"brightness\", \"scan\", \"track\", \"acq_date\", \"acq_time\", \"satellite\", \"instrument\", \"confidence\", \"version\", \"bright_t31\", \"frp\", \"daynight\", \"type\"], \"platforms\": [\"NOAA21\"], \"processing\": [\"archive\"], \"start\": \"2023-03-01T03:56:00\", \"end\": \"2026-07-31T21:21:00\", \"input_rows\": 1589295, \"valid_rows\": 1589295, \"invalid_rows\": 0, \"quality_rows\": 1499579, \"unknown_confidence_rows\": 0, \"unknown_type_rows\": 0, \"invalid_coordinate_rows\": 0, \"invalid_time_rows\": 0, \"unknown_platform_rows\": 0, \"instrument_mismatch_rows\": 0}, {\"member\": \"fire_nrt_J2V-C2_847121.csv\", \"columns\": [\"latitude\", \"longitude\", \"brightness\", \"scan\", \"track\", \"acq_date\", \"acq_time\", \"satellite\", \"instrument\", \"confidence\", \"version\", \"bright_t31\", \"frp\", \"daynight\"], \"platforms\": [\"NOAA21\"], \"processing\": [\"NRT\"], \"start\": \"2026-08-01T03:40:00\", \"end\": \"2026-11-14T04:12:00\", \"input_rows\": 131574, \"valid_rows\": 131574, \"invalid_rows\": 0, \"quality_rows\": 123235, \"unknown_confidence_rows\": 0, \"unknown_type_rows\": 131574, \"invalid_coordinate_rows\": 0, \"invalid_time_rows\": 0, \"unknown_platform_rows\": 0, \"instrument_mismatch_rows\": 0}]"
+    }
+  ]
+}

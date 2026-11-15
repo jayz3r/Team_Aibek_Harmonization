@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {rectangle,regionShape,addLandscape} from '../src/landscape.js';
+import {validateStyleMin} from '@maplibre/maplibre-gl-style-spec';
+const country=JSON.parse(fs.readFileSync('public/data/ADM0.geojson'));
+const provinces=JSON.parse(fs.readFileSync('public/data/ADM1.geojson'));
+for(const name of ['China','Yunnan','Sichuan','Heilongjiang','Guangxi'])assert(regionShape(country,provinces,name).features.length>0,name);
+assert.equal(regionShape(country,provinces,'World').features.length,0);
+assert.deepEqual(rectangle({lng:110,lat:30},{lng:100,lat:20}),rectangle({lng:100,lat:20},{lng:110,lat:30}));
+assert.equal(rectangle({lng:1,lat:1},{lng:1,lat:2}),null);
+assert.equal(rectangle({lng:-170,lat:10},{lng:170,lat:20}),null);
+const style={version:8,sources:{base:{type:'raster',tiles:['https://example.com/{z}/{x}/{y}.png'],tileSize:256}},layers:[{id:'base',type:'raster',source:'base'}]};
+addLandscape({addSource(id,s){style.sources[id]=s;},addLayer(l,before){const i=style.layers.findIndex(x=>x.id===before);if(i<0)style.layers.push(l);else style.layers.splice(i,0,l);}});
+style.terrain={source:'terrain-dem',exaggeration:1.5};
+assert.deepEqual(validateStyleMin(style).map(e=>e.message),[]);
+assert.equal(style.sources['terrain-dem'].encoding,'terrarium');
+assert.equal(style.layers.find(l=>l.id==='satellite').paint['raster-saturation'],-1);
+console.log('PASS: all region geometries, world reset, reversed/degenerate/dateline rectangles, MapLibre style schema, DEM encoding and grayscale satellite.');
