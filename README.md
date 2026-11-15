@@ -1,21 +1,21 @@
-# FireBridge — гармонизация горячих точек MODIS и VIIRS
+# FireBridge — Harmonization of MODIS and VIIRS Hot Spots
 
-Проект для NASA Space Apps Challenge, тема **Harmonization of MODIS and VIIRS Hot Spots**.
-Бэкенд (FastAPI + DuckDB) и фронтенд (React + MapLibre) теперь работают как одно приложение.
+A project for the NASA Space Apps Challenge, topic **Harmonization of MODIS and VIIRS Hot Spots**.
+The backend (FastAPI + DuckDB) and the frontend (React + MapLibre) now run as a single application.
 
 ```
 FireBridge/
-  backend/    API: импорт FIRMS, сетка 10 км, калибровка, календарь, сезонность, события
-  frontend/   Карта и «лаборатория гармонизации»
-  start.bat   Запуск обоих серверов в Windows
-  start.sh    То же для macOS / Linux
+  backend/    API: FIRMS import, 10 km grid, calibration, calendar, seasonality, events
+  frontend/   Map and the "harmonization lab"
+  start.bat   Start both servers on Windows
+  start.sh    The same for macOS / Linux
 ```
 
-## Запуск
+## Getting started
 
-Нужны **Python 3.12** и **Node.js 22.12+** (или 20.19+).
+You need **Python 3.12** and **Node.js 22.12+** (or 20.19+).
 
-**Окно 1 — бэкенд**
+**Window 1: backend**
 
 ```bash
 cd backend
@@ -25,7 +25,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
-**Окно 2 — фронтенд**
+**Window 2: frontend**
 
 ```bash
 cd frontend
@@ -33,88 +33,88 @@ npm ci
 npm run dev
 ```
 
-Откройте адрес, который напечатает Vite (обычно <http://localhost:5173>). Vite сам пересылает
-`/api` и `/health` на бэкенд, настраивать CORS не нужно. В шапке должна появиться плашка
-**LIVE API · REV …**.
+Open the address that Vite prints (usually <http://localhost:5173>). Vite forwards
+`/api` and `/health` to the backend itself, so no CORS setup is needed. A **LIVE API · REV …**
+badge should appear in the header.
 
-В пустой базе нажмите плашку → **Load real sample + calibrate**: загрузится реальный фрагмент
-данных (17 075 детекций, северо-восток Китая, 2001–2026) и обучится модель. Свои архивы FIRMS
-(CSV или ZIP) загружаются там же кнопкой **Upload FIRMS CSV / ZIP**; после загрузки откройте
-**Harmonize → Validation → Re-calibrate**.
+With an empty database, click the badge → **Load real sample + calibrate**: a real data excerpt
+(17,075 detections, northeast China, 2001–2026) is loaded and a model is trained. You can load your
+own FIRMS archives (CSV or ZIP) in the same place with the **Upload FIRMS CSV / ZIP** button; after
+the upload, open **Harmonize → Validation → Re-calibrate**.
 
-`start.bat` / `start.sh` делают то же самое одной командой (при первом запуске ставят зависимости).
+`start.bat` / `start.sh` do the same thing with one command (they install dependencies on first run).
 
-### Один порт для показа жюри
+### One port for the jury demo
 
 ```bash
-cd frontend && npm run build      # создаёт frontend/dist
+cd frontend && npm run build      # creates frontend/dist
 cd ../backend && uvicorn app.main:app --port 8000 --workers 1
 ```
 
-Теперь всё приложение открывается на <http://localhost:8000>, документация API — на `/docs`.
+The whole application now opens at <http://localhost:8000>, and the API documentation is at `/docs`.
 
-### Загрузка своих данных с NASA FIRMS
+### Loading your own data from NASA FIRMS
 
-1. На странице [FIRMS Archive Download](https://firms.modaps.eosdis.nasa.gov/download/) создайте запрос: страна или область, период, продукт (MODIS, VIIRS S-NPP, NOAA-20, NOAA-21), формат **CSV**.
-2. Скачайте ZIP по ссылке из письма. Распаковывать не нужно.
-3. В приложении нажмите плашку статуса в шапке → **Upload FIRMS CSV / ZIP** и выберите один или несколько архивов.
-4. После загрузки откройте **Harmonize → Validation → Re-calibrate**.
+1. On the [FIRMS Archive Download](https://firms.modaps.eosdis.nasa.gov/download/) page, create a request: country or area, period, product (MODIS, VIIRS S-NPP, NOAA-20, NOAA-21), format **CSV**.
+2. Download the ZIP from the link in the email. You do not need to unpack it.
+3. In the app, click the status badge in the header → **Upload FIRMS CSV / ZIP** and choose one or several archives.
+4. After the upload, open **Harmonize → Validation → Re-calibrate**.
 
-Для модели нужны и MODIS, и VIIRS за несколько общих лет. Лимит одного файла — 256 МБ (`MAX_UPLOAD_MB`).
+The model needs both MODIS and VIIRS data for several shared years. The limit for a single file is 256 MB (`MAX_UPLOAD_MB`).
 
-### Размещение на Render
+### Deploying on Render
 
-| Поле | Значение |
+| Field | Value |
 |---|---|
 | Root Directory | `backend` |
 | Build Command | `pip install -r requirements.txt` |
 | Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1` |
-| Переменная `PYTHON_VERSION` | `3.12.8` |
-| Переменная `AUTOLOAD_DEMO` (по желанию) | `1` — пустая база при старте сама загружает встроенный пример и обучает модель |
+| Variable `PYTHON_VERSION` | `3.12.8` |
+| Variable `AUTOLOAD_DEMO` (optional) | `1`: an empty database loads the bundled sample and trains a model on startup |
 
-Интерфейс сервер отдаёт из `frontend/dist`, поэтому после изменений в `frontend/src` выполните `npm run build` и закоммитьте `frontend/dist`.
+The server serves the interface from `frontend/dist`, so after changing anything in `frontend/src`, run `npm run build` and commit `frontend/dist`.
 
-На бесплатном тарифе 512 МБ памяти, а диск очищается при перезапуске. Большие архивы (страна за много лет) загружайте на локальном запуске.
+The free tier has 512 MB of memory, and the disk is wiped on restart. Upload large archives (a whole country over many years) when running locally.
 
-### Если бэкенд не запущен
+### If the backend is not running
 
-Фронтенд не падает: плашка показывает **OFFLINE SHOWCASE**, на карте — синтетические точки
-(подписаны как демо), а в лаборатории — заранее посчитанный этим бэкендом отчёт по полным
-архивам Китая (15,6 млн детекций, 2000–2025). Это страховка на случай сбоя во время демо.
+The frontend does not crash: the badge shows **OFFLINE SHOWCASE**, the map shows synthetic points
+(labelled as a demo), and the lab shows a precomputed report from this backend on the full
+China archives (15.6 million detections, 2000–2025). This is a safety net in case something fails during the demo.
 
-## Что умеет приложение
+## What the application can do
 
-| Где | Что |
+| Where | What |
 |---|---|
-| Шкала времени внизу | Год и месяц; столбцы — гармонизированный индекс активности, полоска под столбцом — спутник-источник месяца |
-| **Pixels / Density** | Исходные детекции MODIS (оранжевые) и VIIRS (светлые), фильтр по сенсору, день/ночь, архив/NRT |
-| **Grid 10 km** | Равноплощадная сетка — единица, из которой строится индекс; выбор спутника |
-| **Events** | Пиксели всех спутников, слитые в пространственно-временные кластеры; цвет — кто видел (оба семейства / только VIIRS / только MODIS) |
-| Scene settings → **Draw area** | Своя область интереса: карта, календарь и аномалии считаются по ней |
-| **Harmonize → Burning calendar** | Календарь горения за все годы, сравнение «сырой ряд против гармонизированного», флаги, CSV |
-| **Harmonize → Seasonality** | Сезонный профиль, отклонения выбранного года (z-оценка), самые активные месяцы |
-| **Harmonize → Validation** | Коэффициенты с доверительными интервалами, ошибка до/после на отложенном годе, честный список ограничений, кнопка переобучения |
-| **Harmonize → Sensor agreement** | Совпадение пикселей MODIS–VIIRS по расстоянию и времени, доля событий, увиденных обоими сенсорами |
-| Плашка статуса → панель данных | Загрузка файлов на сервер, импорт свежих данных NASA FIRMS, покрытие по спутникам, экспорт CSV |
+| Timeline at the bottom | Year and month; the bars show the harmonized activity index, and the strip under each bar shows the source satellite of that month |
+| **Pixels / Density** | Raw MODIS (orange) and VIIRS (light) detections, filters by sensor, day/night, archive/NRT |
+| **Grid 10 km** | Equal-area grid, the unit from which the index is built; satellite selection |
+| **Events** | Pixels from all satellites merged into space-time clusters; color shows who saw them (both families / VIIRS only / MODIS only) |
+| Scene settings → **Draw area** | Your own area of interest: the map, calendar and anomalies are computed for it |
+| **Harmonize → Burning calendar** | Burning calendar for all years, comparison of the raw series against the harmonized one, flags, CSV |
+| **Harmonize → Seasonality** | Seasonal profile, deviations of the selected year (z-score), most active months |
+| **Harmonize → Validation** | Coefficients with confidence intervals, error before/after on the held-out year, an honest list of limitations, a re-train button |
+| **Harmonize → Sensor agreement** | MODIS–VIIRS pixel matching by distance and time, share of events seen by both sensors |
+| Status badge → data panel | File upload to the server, import of fresh NASA FIRMS data, coverage by satellite, CSV export |
 
-Импорт свежих данных из NASA FIRMS: получите бесплатный MAP_KEY, скопируйте
-`backend/.env.example` в `backend/.env`, впишите `FIRMS_MAP_KEY=...` и перезапустите сервер.
-Ключ остаётся на сервере.
+To import fresh data from NASA FIRMS, get a free MAP_KEY, copy
+`backend/.env.example` to `backend/.env`, add `FIRMS_MAP_KEY=...` and restart the server.
+The key stays on the server.
 
-## Проверка
+## Testing
 
 ```bash
 cd backend  && pip install -r requirements-dev.txt && python -m pytest -q
 cd frontend && npm test
 ```
 
-Что именно было проверено при сборке этой версии и что нужно прогнать у себя — в
+What was checked when this version was built, and what you still need to run yourself, is described in
 [CHANGES.md](CHANGES.md).
 
-## Документация
+## Documentation
 
-- [backend/README.md](backend/README.md) — API, данные, ограничения
-- [backend/docs/methodology.md](backend/docs/methodology.md) — метод гармонизации
-- [backend/docs/frontend.md](backend/docs/frontend.md) — контракт API для фронтенда
-- [backend/reports/VALIDATION.md](backend/reports/VALIDATION.md) — результаты на полных архивах Китая
-- [frontend/README.md](frontend/README.md) — устройство интерфейса
+- [backend/README.md](backend/README.md): API, data, limitations
+- [backend/docs/methodology.md](backend/docs/methodology.md): the harmonization method
+- [backend/docs/frontend.md](backend/docs/frontend.md): the API contract for the frontend
+- [backend/reports/VALIDATION.md](backend/reports/VALIDATION.md): results on the full China archives
+- [frontend/README.md](frontend/README.md): how the interface is organized
