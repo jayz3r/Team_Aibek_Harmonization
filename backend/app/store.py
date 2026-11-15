@@ -34,8 +34,14 @@ class Store:
 
     @contextmanager
     def db(self):
+        # A private cursor per use: a half-read result (fetchone) on one call can never
+        # block register()/execute() in another, e.g. status polling during an import.
         with self.lock:
-            yield self.connection
+            cursor = self.connection.cursor()
+            try:
+                yield cursor
+            finally:
+                cursor.close()
 
     def close(self):
         with self.lock:
