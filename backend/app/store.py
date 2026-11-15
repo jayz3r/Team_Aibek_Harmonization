@@ -28,7 +28,7 @@ class Store:
         self.lock = RLock()
         self.connection = duckdb.connect(str(self.path))
         self.connection.execute(f"SET memory_limit='{settings.memory_limit}'")
-        self.connection.execute("SET threads=2")
+        self.connection.execute("SET threads=1")
         self.connection.execute("SET preserve_insertion_order=false")
         self._initialize()
 
