@@ -34,14 +34,8 @@ class Store:
 
     @contextmanager
     def db(self):
-        # A private cursor per use: a half-read result (fetchone) on one call can never
-        # block register()/execute() in another, e.g. status polling during an import.
         with self.lock:
-            cursor = self.connection.cursor()
-            try:
-                yield cursor
-            finally:
-                cursor.close()
+            yield self.connection
 
     def close(self):
         with self.lock:
@@ -74,7 +68,7 @@ class Store:
             """)
             expected = {"grid_km": str(self.settings.grid_km), "region_km": str(self.settings.region_km), "schema": "1"}
             for key, value in expected.items():
-                old = c.execute("SELECT value FROM meta WHERE key=?", [key]).fetchone()
+                old = (c.execute("SELECT value FROM meta WHERE key=?", [key]).fetchall() or [None])[0]
                 if old and old[0] != value:
                     raise ConflictError(f"Database {key}={old[0]}, requested {value}; use a new DATA_DIR")
                 c.execute("INSERT INTO meta VALUES (?,?) ON CONFLICT DO NOTHING", [key, value])
@@ -90,7 +84,7 @@ class Store:
 
     def revision(self):
         with self.db() as c:
-            return int(c.execute("SELECT value FROM meta WHERE key='revision'").fetchone()[0])
+            return int(c.execute("SELECT value FROM meta WHERE key='revision'").fetchall()[0][0])
 
     def frame(self, sql, params=None):
         with self.db() as c:
@@ -133,7 +127,8 @@ class Store:
 
     def get_model(self, model_id):
         with self.db() as c:
-            row = c.execute("SELECT revision,payload FROM models WHERE id=?", [model_id]).fetchone()
+            rows = c.execute("SELECT revision,payload FROM models WHERE id=?", [model_id]).fetchall()
+            row = rows[0] if rows else None
         if row is None:
             raise NotFoundError("Model not found")
         payload = json.loads(row[1])
